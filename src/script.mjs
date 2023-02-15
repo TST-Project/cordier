@@ -11,6 +11,8 @@ const init = () => {
             if(err) return console.log(err.message);
             const fig1 = new Fig1(res);
             fig1.draw();
+            const fig2 = new Fig2(res);
+            fig2.draw();
         });
     });
 };
@@ -105,7 +107,7 @@ const fig1style = [
         'background-opacity': '0.8'
      }
     },
-    {selector: 'node.scribe',
+/*    {selector: 'node.scribe',
      style: {
          'background-color': '#1b9e77'
      }
@@ -126,7 +128,27 @@ const fig1style = [
         'background-gradient-stop-colors': '#1b9e77 #d95f02'
      }
     }
+    */
 ];
+const colors = [
+    ['scribe','#1b9e77'],
+    ['editor', '#d95f02'],
+    ['procurer','#7570b3'],
+];
+for(const color of colors) {
+    fig1style.push({
+        selector: `node.${color[0]}`,
+        style: {
+            'background-color': color[1]
+        }
+    });
+}
+fig1style.push({selector: 'node.scribe.editor',
+     style: {
+        'background-fill': 'linear-gradient',
+        'background-gradient-stop-colors': `${colors[0][1]} ${colors[1][1]}`
+     }
+});
 
 class Fig1 {
     constructor(data) {
@@ -213,6 +235,9 @@ class Fig1 {
         });
         cy.$('node.place').ungrabify();
         cy.on('mouseup',this.mouseUp.bind(null,cy));
+        
+        const legend = document.getElementById('fig-people-legend');
+        if(legend) makeLegend(legend);
     }
 
     mouseUp(cy,e) {
@@ -267,6 +292,62 @@ const toolTip = {
     },
 };
 
+class Fig2 {
+    constructor(data) {
+        this.places = new Map([
+            ['Jammu', {mss: [], width: [], height: []}],
+            ['Bikaner', {mss: [], width: [], height: []}],
+            ['Madras', {mss: [], width: [], height: []}],
+            ['Tanjore', {mss: [], width: [], height: []}]
+        ]);
+        for(const d of data) {
+            const place = ((p) => (p === 'Chandernagor' ? 'Calcutta': p))(cleanWord(d['Copy place']));
+            if(place === '' || place === 'Besançon') continue;
+
+            //const shelfmark = cleanWord(d.Shelfmark);
+            const width = cleanNum(d.Width)/3;
+            const height = cleanNum(d.Height)/3;
+            if(this.places.has(place)) {
+                const val = this.places.get(place);
+                if(width > val.width) val.width = width;
+                if(height > val.height) val.height = height;
+                val.mss.push({width: width, height: height});
+            }
+        }
+    }
+    draw() {
+        const par = document.getElementById('fig-size');
+        for(const [key, val] of this.places) {
+            const figure = document.createElement('figure');
+            const container = document.createElement('div');
+            container.style.width = `${val.width}px`;
+            container.style.height = `${val.height}px`;
+            for(const ms of val.mss) {
+                const box = document.createElement('div');
+                box.style.width = `${ms.width}px`;
+                box.style.height = `${ms.height}px`;
+                container.append(box);
+            }
+            const caption = document.createElement('figcaption');
+            caption.append(key);
+            figure.append(container);
+            figure.append(caption);
+            par.append(figure);
+        }
+    }
+}
+
+const makeLegend = (div) => {
+    for(const color of colors) {
+        const container = document.createElement('div');
+        const symbol = document.createElement('span');
+        symbol.style.color = color[1];
+        symbol.append('●');
+        container.append(symbol);
+        container.append(color[0]);
+        div.append(container);
+    }
+};
 
 const Cordier = {
     init: init
