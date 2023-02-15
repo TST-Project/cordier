@@ -322,8 +322,10 @@ class Fig2 {
             const container = document.createElement('div');
             container.style.width = `${val.width}px`;
             container.style.height = `${val.height}px`;
+            val.mss.sort((a,b) => {return a.width * a.height > b.width * b.height ? -1 : 1;});
             for(const ms of val.mss) {
                 const box = document.createElement('div');
+                box.className = 'ms';
                 box.style.width = `${ms.width}px`;
                 box.style.height = `${ms.height}px`;
                 container.append(box);
