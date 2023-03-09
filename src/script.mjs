@@ -310,13 +310,12 @@ const makeLegend = (div) => {
 };
 
 const startZoomers = () => {
-    const makeZoomer = (el,i) => {
-        const ratio = i.width/i.height;
+    const makeZoomer = (el,img,iiif) => {
+        const ratio = iiif ? iiif.width/iiif.height : img.width/img.height;
         el.style.aspectRatio = ratio;
         if(!el.id) el.id = `zoom-${Date.now()}`;
-        i.style.display = 'none';
-        const tiles = i.dataset.iiif ?  [ i.dataset.iiif ] :
-              { type: 'image', url: i.src };
+        img.style.display = 'none';
+        const tiles = iiif || { type: 'image', url: img.src };
         const fig = new OpenSeadragon.Viewer({
             id:el.id,
             prefixUrl: 'icons/',
@@ -326,8 +325,12 @@ const startZoomers = () => {
     for(const el of document.getElementsByClassName('inline-zoom')) {
         const img = el.querySelector('img');
         if(!img) continue;
-        const url = img.src;
-        img.onload = makeZoomer(el,img);
+        if(img.dataset.iiif)
+            fetch(img.dataset.iiif)
+                .then((res) => res.json())
+                .then((data) => makeZoomer(el,img,data));
+        else if(img.src)
+            img.onload = makeZoomer(el,img);
     }
 };
 
@@ -359,7 +362,7 @@ const startPopup = (e) => {
           { type: 'image', url: img.src };
     const viewer = new OpenSeadragon.Viewer({
         id: 'popup-viewer',
-        prefixUrl: 'node_modules/openseadragon/build/openseadragon/images/',
+        prefixUrl: 'icons/',
         tileSources: tiles
     });
     const clone = el.cloneNode(true);
