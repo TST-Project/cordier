@@ -379,9 +379,9 @@ const startZoomers = () => {
         el.style.aspectRatio = ratio;
         if(!el.id) el.id = `zoom-${Date.now()}`;
         i.style.display = 'none';
-        const figtest = new OpenSeadragon.Viewer({
+        const fig = new OpenSeadragon.Viewer({
             id:el.id,
-            prefixUrl: 'node_modules/openseadragon/build/openseadragon/images/',
+            prefixUrl: 'icons/',
             tileSources: {
                 type: 'image',
                 url: i.src
