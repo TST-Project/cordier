@@ -1,4 +1,5 @@
-import { parse as csvParse } from 'csv-parse/browser/esm';
+import Data from './data/medical_mss.json';
+//import { parse as csvParse } from 'csv-parse/browser/esm';
 import Cytoscape from 'cytoscape';
 import Fcose from 'cytoscape-fcose';
 import cyCanvas from 'cytoscape-canvas';
@@ -7,28 +8,14 @@ Cytoscape.use(Fcose);
 cyCanvas(Cytoscape);
 
 const init = () => {
-   fetch('./data/medical_mss.csv')
-    .then((res) => res.text())
-    .then((data) => {
-        csvParse(data, {columns: true}, (err,res) => {
-            if(err) return console.log(err.message);
-            const fig1 = new Fig1(res);
-            fig1.draw();
-            const fig2 = new Fig2(res);
-            fig2.draw();
-        });
-    });
     startZoomers();
+    const fig1 = new Fig1(Data);
+    fig1.draw();
+    const fig2 = new Fig2(Data);
+    fig2.draw();
     document.addEventListener('click',docClick);
 };
 
-const cleanWord = (str) => str.trim().replace(/\*$/,'').replace(/\s+/g,'_');
-const cleanNum = (str) => {
-    const trimmed = str.trim().replace(/\*$/,'');
-    const [min,max] = trimmed.split('-');
-    if(max) return parseInt(min) + parseInt(max) / 2;
-    else return parseInt(min);
-};
 const fig1style = [
     {selector: 'node',
      style: {
@@ -174,61 +161,14 @@ class Fig1 {
                 position: {x: el.position.x * 100, y: -el.position.y * 100}
             };
         });
-
-        this.mss = new Map();
-        this.people = new Map();
-        this.places = new Map();
-        this.edges = [];
-
-        this.parseData(data);
+        this.data = data;
     }
-
-    addPerson(d,shelfmark,field) {
-        const persons = d[field].replace(/\[.+\]/,'').split(';');
-        const fieldlower = field.toLowerCase();
-        for(const person of persons) {
-            const personid = cleanWord(person);
-            if(!personid) continue;
-            if(!this.people.has(personid))
-                this.people.set(personid,{data: {id: cleanWord(person), label: person.replace(/\*$/,''),roles: new Set([field])}, classes: fieldlower} );
-            else {
-                const oldperson = this.people.get(personid);
-                oldperson.data.roles.add(fieldlower);
-                oldperson.classes = [...oldperson.data.roles].join(' ');
-            }
-
-            this.edges.push({data: {id: `${personid}-${shelfmark}`,source: personid, target: shelfmark,popup: fieldlower}, classes: fieldlower });
-        }
-    }
-
-    parseData(data) {
-        for(const d of data) {
-            const place = ((p) => (p === 'Chandernagor' ? 'Calcutta': p))(cleanWord(d['Copy place']));
-            if(place === '' || place === 'Besançon') continue;
-
-            const shelfmark = cleanWord(d.Shelfmark);
-            const width = cleanNum(d.Width);
-            const height = cleanNum(d.Height);
-            this.mss.set(shelfmark,{data: {id: shelfmark, width: width/10, height: height/10, popup: d.Shelfmark}, classes: 'manuscript'});
-
-            if(place) {
-                if(!this.places.has(place))
-                    this.places.set(place,{data: {id: place, label: place}, classes: 'place'});
-                this.edges.push({data: {id: `${place}-${shelfmark}`,source: place, target: shelfmark, popup: 'copy place'}, classes: 'place' });
-            }
-
-            this.addPerson(d,shelfmark,'Scribe');
-            this.addPerson(d,shelfmark,'Procurer');
-            this.addPerson(d,shelfmark,'Editor');
-        }
-    }
-    
     draw() {
         const background = new Image();
         background.onload = () => {
             const cy = Cytoscape({
                container: document.getElementById('fig-people'),
-               elements: [...this.mss.values(), ...this.places.values(), ...this.people.values(), ...this.edges],
+               elements: [...this.data.mss, ...this.data.places, ...this.data.people, ...this.data.edges],
                layout: {
                    name: 'fcose',
                    nodeDimensionsIncludeLabels: true,
@@ -242,7 +182,6 @@ class Fig1 {
             });
 
             const bottomLayer = cy.cyCanvas({ zIndex: -1 });
-            //const bottomLayer = cy.cyCanvas();
             const canvas = bottomLayer.getCanvas();
             const ctx = canvas.getContext('2d');
             cy.on('render cyCanvas.resize', e => {
@@ -322,14 +261,11 @@ class Fig2 {
             ['Madras', {mss: [], width: [], height: []}],
             ['Tanjore', {mss: [], width: [], height: []}]
         ]);
-        for(const d of data) {
-            const place = ((p) => (p === 'Chandernagor' ? 'Calcutta': p))(cleanWord(d['Copy place']));
-            if(place === '' || place === 'Besançon') continue;
-
-            //const shelfmark = cleanWord(d.Shelfmark);
-            const width = cleanNum(d.Width)/3;
-            const height = cleanNum(d.Height)/3;
+        for(const d of data.mss) {
+            const place = d.data.place;
             if(this.places.has(place)) {
+                const width = d.data.width*3;
+                const height = d.data.height*3;
                 const val = this.places.get(place);
                 if(width > val.width) val.width = width;
                 if(height > val.height) val.height = height;
