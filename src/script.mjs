@@ -335,15 +335,16 @@ const startZoomers = () => {
 };
 
 const docClick = (e) => {
-    if(e.target.classList.contains('popup-toggle'))
-        startPopup(e);
+    const tog = e.target.closest('.popup-toggle');
+    if(tog)
+        startPopup(tog);
 
     else if(e.target.id === 'blackout')
         cancelPopup(e);
 };
 
-const startPopup = (e) => {
-    const el = e.target.nextElementSibling;
+const startPopup = (toggle) => {
+    const el = toggle.nextElementSibling;
     if(!el || !el.classList.contains('popup-zoom')) return;
     
     const blackout = document.createElement('div');

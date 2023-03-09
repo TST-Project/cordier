@@ -46,6 +46,18 @@ table tbody tr td:last-child {
 .popup-toggle {
     cursor: pointer;
     color: #a85110;
+    fill: #a85110;
+    padding: 0 0.2rem 0 0.2rem;
+}
+.popup-toggle:hover {
+    fill: #2B73B7;
+    color: #2B73B7;
+}
+a[href] {
+    color: #A85110;
+}
+a[href]:hover {
+    color: #2B73B7;
 }
 #fig-people > canvas {
     background: white;
