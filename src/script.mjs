@@ -315,13 +315,12 @@ const startZoomers = () => {
         el.style.aspectRatio = ratio;
         if(!el.id) el.id = `zoom-${Date.now()}`;
         i.style.display = 'none';
+        const tiles = i.dataset.iiif ?  [ i.dataset.iiif ] :
+              { type: 'image', url: i.src };
         const fig = new OpenSeadragon.Viewer({
             id:el.id,
             prefixUrl: 'icons/',
-            tileSources: {
-                type: 'image',
-                url: i.src
-            }
+            tileSources: tiles
         });
     };
     for(const el of document.getElementsByClassName('inline-zoom')) {
@@ -356,13 +355,12 @@ const startPopup = (e) => {
     document.body.appendChild(blackout);
 
     const img = el.querySelector('img');
+    const tiles = img.dataset.iiif ?  [ img.dataset.iiif ] :
+          { type: 'image', url: img.src };
     const viewer = new OpenSeadragon.Viewer({
         id: 'popup-viewer',
         prefixUrl: 'node_modules/openseadragon/build/openseadragon/images/',
-        tileSources: {
-            type: 'image',
-            url: img.src
-        }
+        tileSources: tiles
     });
     const clone = el.cloneNode(true);
     clone.firstChild.remove();
