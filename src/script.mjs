@@ -1,10 +1,13 @@
 import { parse as csvParse } from 'csv-parse/browser/esm';
 import Cytoscape from 'cytoscape';
 import Fcose from 'cytoscape-fcose';
+import cyCanvas from 'cytoscape-canvas';
+import OpenSeadragon from 'openseadragon';
 Cytoscape.use(Fcose);
+cyCanvas(Cytoscape);
 
 const init = () => {
-   fetch('./medical_mss.csv')
+   fetch('./data/medical_mss.csv')
     .then((res) => res.text())
     .then((data) => {
         csvParse(data, {columns: true}, (err,res) => {
@@ -15,6 +18,8 @@ const init = () => {
             fig2.draw();
         });
     });
+    startZoomers();
+    document.addEventListener('click',docClick);
 };
 
 const cleanWord = (str) => str.trim().replace(/\*$/,'').replace(/\s+/g,'_');
@@ -219,25 +224,42 @@ class Fig1 {
     }
     
     draw() {
-        const cy = Cytoscape({
-           container: document.getElementById('fig-people'),
-           elements: [...this.mss.values(), ...this.places.values(), ...this.people.values(), ...this.edges],
-           layout: {
-               name: 'fcose',
-               nodeDimensionsIncludeLabels: true,
-               idealEdgeLength: edge => (edge.hasClass('place') ? 50 : 150),
-               edgeElasticity: edge => (edge.hasClass('place') ? 1.5 : 0.2),
-               fixedNodeConstraint: this.coords_scaled,
-               relativePlacementConstraint: [{top: 'Calcutta', bottom: 'Palmyr_Cordier', gap: 500}, {right: 'Calcutta', left: 'Palmyr_Cordier', gap: 400}],
-               stop: () => cy.minZoom(cy.zoom())
-           },
-           style: fig1style
-        });
-        cy.$('node.place').ungrabify();
-        cy.on('mouseup',this.mouseUp.bind(null,cy));
-        
-        const legend = document.getElementById('fig-people-legend');
-        if(legend) makeLegend(legend);
+        const background = new Image();
+        background.onload = () => {
+            const cy = Cytoscape({
+               container: document.getElementById('fig-people'),
+               elements: [...this.mss.values(), ...this.places.values(), ...this.people.values(), ...this.edges],
+               layout: {
+                   name: 'fcose',
+                   nodeDimensionsIncludeLabels: true,
+                   idealEdgeLength: edge => (edge.hasClass('place') ? 50 : 150),
+                   edgeElasticity: edge => (edge.hasClass('place') ? 1.5 : 0.2),
+                   fixedNodeConstraint: this.coords_scaled,
+                   relativePlacementConstraint: [{top: 'Calcutta', bottom: 'Palmyr_Cordier', gap: 500}, {right: 'Calcutta', left: 'Palmyr_Cordier', gap: 400}],
+                   stop: () => cy.minZoom(cy.zoom())
+               },
+               style: fig1style
+            });
+
+            const bottomLayer = cy.cyCanvas({ zIndex: -1 });
+            //const bottomLayer = cy.cyCanvas();
+            const canvas = bottomLayer.getCanvas();
+            const ctx = canvas.getContext('2d');
+            cy.on('render cyCanvas.resize', e => {
+                bottomLayer.resetTransform(ctx);
+                bottomLayer.clear(ctx);
+                bottomLayer.setTransform(ctx);
+                ctx.globalAlpha = 0.5;
+                ctx.rotate((5 * Math.PI) / 180);
+                ctx.drawImage(background,5900,-3430,5200,3900);
+            });
+            cy.$('node.place').ungrabify();
+            cy.on('mouseup',this.mouseUp.bind(null,cy));
+            
+            const legend = document.getElementById('fig-people-legend');
+            if(legend) makeLegend(legend);
+        };
+        background.src = 'img/map-reduced.png';
     }
 
     mouseUp(cy,e) {
@@ -351,6 +373,69 @@ const makeLegend = (div) => {
     }
 };
 
+const startZoomers = () => {
+    const makeZoomer = (el,i) => {
+        const ratio = i.width/i.height;
+        el.style.aspectRatio = ratio;
+        if(!el.id) el.id = `zoom-${Date.now()}`;
+        i.style.display = 'none';
+        const figtest = new OpenSeadragon.Viewer({
+            id:el.id,
+            prefixUrl: 'node_modules/openseadragon/build/openseadragon/images/',
+            tileSources: {
+                type: 'image',
+                url: i.src
+            }
+        });
+    };
+    for(const el of document.getElementsByClassName('inline-zoom')) {
+        const img = el.querySelector('img');
+        if(!img) continue;
+        const url = img.src;
+        img.onload = makeZoomer(el,img);
+    }
+};
+
+const docClick = (e) => {
+    if(e.target.classList.contains('popup-toggle'))
+        startPopup(e);
+
+    else if(e.target.id === 'blackout')
+        cancelPopup(e);
+};
+
+const startPopup = (e) => {
+    const el = e.target.nextElementSibling;
+    if(!el || !el.classList.contains('popup-zoom')) return;
+    
+    const blackout = document.createElement('div');
+    blackout.id = 'blackout';
+    const popup = document.createElement('div');
+    popup.id = 'popup';
+    const popupViewer = document.createElement('div');
+    popupViewer.id = 'popup-viewer';
+   
+    popup.appendChild(popupViewer);
+    blackout.appendChild(popup);
+    document.body.appendChild(blackout);
+
+    const img = el.querySelector('img');
+    const viewer = new OpenSeadragon.Viewer({
+        id: 'popup-viewer',
+        prefixUrl: 'node_modules/openseadragon/build/openseadragon/images/',
+        tileSources: {
+            type: 'image',
+            url: img.src
+        }
+    });
+    const clone = el.cloneNode(true);
+    clone.firstChild.remove();
+    popup.appendChild(clone);
+};
+
+const cancelPopup = (e) => {
+    e.target.remove();
+};
 const Cordier = {
     init: init
 };
