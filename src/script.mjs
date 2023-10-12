@@ -175,7 +175,7 @@ class Fig1 {
                    idealEdgeLength: edge => (edge.hasClass('place') ? 50 : 150),
                    edgeElasticity: edge => (edge.hasClass('place') ? 1.5 : 0.2),
                    fixedNodeConstraint: this.coords_scaled,
-                   relativePlacementConstraint: [{top: 'Calcutta', bottom: 'Palmyr_Cordier', gap: 500}, {right: 'Calcutta', left: 'Palmyr_Cordier', gap: 400}],
+                   relativePlacementConstraint: [{top: 'Calcutta', bottom: 'Palmyr_Cordier', gap: 500}, {right: 'Calcutta', left: 'Palmyr_Cordier', gap: 400},{top: 'Palmyr_Cordier',bottom: 'Sanscrit_1274A',gap: 550},{right: 'Palmyr_Cordier',left: 'Sanscrit_1274A',gap: 400},{top: 'Palmyr_Cordier',bottom: 'Sanscrit_1184',gap: 600},{right: 'Palmyr_Cordier',left: 'Sanscrit_1184',gap: 500}],
                    stop: () => cy.minZoom(cy.zoom())
                },
                style: fig1style
